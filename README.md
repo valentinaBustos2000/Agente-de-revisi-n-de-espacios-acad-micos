@@ -12,4 +12,6 @@ El agente permite:
 - Presentar alternativas cuando un salón específico no está disponible.
 - Responder con información obtenida directamente del sistema institucional, sin realizar reservas.
 
-La solución integra **n8n** para la orquestación del flujo conversacional, **Ollama con Llama 3.2** como modelo de lenguaje y un
+La solución integra **n8n** para la orquestación del flujo conversacional, **Ollama con Llama 3.2** como modelo de lenguaje y un servidor desarrollado en Node.js encargado de normalizar las solicitudes, consultar la disponibilidad real y cruzar los resultados con el catálogo institucional de espacios.
+
+El sistema funciona localmente y prioriza la precisión de los resultados: el modelo interpreta la solicitud, mientras que el servidor y la fuente institucional determinan la disponibilidad real de los salones.
