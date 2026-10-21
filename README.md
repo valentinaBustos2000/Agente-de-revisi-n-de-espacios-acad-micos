@@ -1,6 +1,6 @@
 ## Agente de consulta de disponibilidad de salones
 
-Este proyecto implementa un agente conversacional para consultar la disponibilidad de salones de la Universidad de Ibagué. El usuario puede realizar solicitudes en lenguaje natural indicando fechas, horarios, capacidad, características requeridas o el código de un salón específico.
+Este proyecto implementa un agente conversacional para consultar la disponibilidad de salones de la Universidad. El usuario puede realizar solicitudes en lenguaje natural indicando fechas, horarios, capacidad, características requeridas o el código de un salón específico.
 
 El agente permite:
 
