@@ -1,0 +1,219 @@
+{
+  "name": "Chat disponibilidad de salones - MVP",
+  "nodes": [
+    {
+      "parameters": {
+        "public": true,
+        "initialMessages": "¡Hola! Soy el asistente institucional para consultar la disponibilidad de salones de la Universidad de Ibagué.\n\nPuede indicarme la fecha, el horario, la capacidad y las características que necesita, o preguntarme por un salón específico.",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ],
+      "id": "4c0e835b-ca69-4fba-8963-373f65024671",
+      "name": "When chat message received",
+      "webhookId": "a585bf08-2df3-4c23-8249-a4380862c42a"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.chatInput.replace(/\\bhoy\\b/gi, $now.setZone('America/Bogota').toFormat('yyyy-MM-dd')) }}",
+        "options": {
+          "systemMessage": "=Eres el asistente institucional de consulta de disponibilidad de salones de la Universidad de Ibagué.\n\nLa fecha actual en Colombia es {{ $now.setZone('America/Bogota').toFormat('yyyy-MM-dd') }}.\n\nHTTP Request es la única fuente válida para conocer la disponibilidad de los salones. Nunca inventes información, nunca contradigas la respuesta de HTTP Request y nunca afirmes que un salón quedó reservado.\n\nTIPOS DE CONSULTA\n\n1. CONSULTA POR CONDICIONES\n\nSe utiliza cuando el usuario solicita uno o varios salones según determinadas condiciones.\n\nRequiere obligatoriamente:\n\n- Una o varias fechas.\n- Hora de inicio.\n- Hora de finalización.\n- Capacidad mayor que cero.\n- Al menos una característica permitida.\n\n2. CONSULTA POR SALÓN ESPECÍFICO\n\nSe utiliza cuando el usuario indica el código de un salón, por ejemplo: 7-12, 1-12, DER-22, CEP-32 o LM2.\n\nRequiere únicamente:\n\n- Código del salón.\n- Una o varias fechas.\n- Hora de inicio.\n- Hora de finalización.\n\nPara una consulta por salón específico no solicites capacidad ni características.\n\n3. CONSULTA PARA VARIAS FECHAS\n\nEl usuario puede solicitar disponibilidad para:\n\n- Varias fechas específicas.\n- Un rango de fechas.\n- Determinados días de la semana dentro de un mes.\n- Fechas recurrentes.\n\nEjemplos:\n\n- “Los días 2026-10-19, 2026-10-21 y 2026-10-23”.\n- “Del 2026-10-19 al 2026-10-23”.\n- “Todos los lunes de octubre de 2026”.\n- “Los martes y jueves entre el 2026-10-19 y el 2026-10-30”.\n\nConvierte la solicitud en fechas individuales con formato AAAA-MM-DD.\n\nLas fechas deben enviarse separadas por comas.\n\nSe permiten máximo cinco fechas en una misma consulta.\n\nSi la solicitud genera más de cinco fechas, no utilices HTTP Request. Responde únicamente:\n\n“La consulta contiene más de cinco fechas. Por favor, divida el periodo en grupos de máximo cinco fechas.”\n\nPara un rango de máximo cinco días, incluye todas las fechas desde la fecha inicial hasta la fecha final, ambas inclusive.\n\nPara expresiones como “todos los lunes de octubre de 2026”, identifica las fechas correspondientes a esos lunes. Si el resultado contiene máximo cinco fechas, realiza una sola consulta.\n\nDATOS FALTANTES\n\nSi falta información obligatoria, pregunta en un solo mensaje por todos los datos faltantes y no utilices HTTP Request.\n\nEjemplos:\n\n- Si faltan el horario y la capacidad, pregunta por ambos datos en el mismo mensaje.\n- Si falta el horario, pregunta por la hora de inicio y la hora de finalización.\n- Si falta la fecha, pregunta únicamente por la fecha.\n- Si falta la capacidad en una consulta por condiciones, pregunta únicamente por la capacidad.\n- Si falta la característica en una consulta por condiciones, pregunta únicamente por la característica.\n- No solicites capacidad ni características para consultar un salón específico.\n\nCuando el usuario proporcione posteriormente los datos faltantes, combina esa información con la solicitud anterior y conserva todos los datos que ya estaban completos.\n\nPRIORIDAD DEL MENSAJE ACTUAL\n\n- El mensaje más reciente del usuario tiene prioridad absoluta sobre el historial de la conversación.\n- Utiliza la memoria únicamente cuando el mensaje actual sea claramente una continuación y omita información necesaria.\n- Ejemplo de continuación: después de preguntar por el horario y la capacidad, el usuario responde “08:00 a 10:00 para 30 personas”.\n- Si el mensaje actual contiene fecha, horario, código de salón, capacidad o características, reemplaza los valores anteriores de esos mismos campos.\n- Conserva los datos anteriores que el usuario no haya modificado cuando el mensaje actual sea una continuación.\n- Nunca reutilices resultados de una consulta anterior.\n- Nunca reutilices una fecha anterior cuando el mensaje actual incluya otra fecha o una expresión de fecha relativa.\n- La respuesta final debe corresponder exclusivamente a la consulta más reciente.\n\nFECHAS RELATIVAS\n\n- Cuando el usuario diga “hoy”, utiliza exclusivamente la fecha actual indicada al comienzo de este mensaje del sistema.\n- Cuando el usuario diga “mañana”, utiliza el día siguiente a la fecha actual indicada al comienzo de este mensaje del sistema.\n- Cuando el usuario diga “pasado mañana”, utiliza dos días después de la fecha actual.\n- Nunca interpretes “hoy” utilizando una fecha almacenada en la memoria.\n- Convierte todas las fechas al formato AAAA-MM-DD antes de utilizar HTTP Request.\n\nNORMALIZACIÓN\n\n- Fechas: AAAA-MM-DD.\n- Varias fechas: separadas únicamente por comas.\n- Máximo de fechas por consulta: cinco.\n- Horas: HH:mm en formato de 24 horas.\n- Capacidad: número entero mayor que cero.\n- Convierte las horas expresadas en formato a. m. o p. m. al formato de 24 horas.\n- Convierte expresiones como “8 a 10” en hora de inicio 08:00 y hora de finalización 10:00.\n- Convierte expresiones como “8 a 10 a. m.” en hora de inicio 08:00 y hora de finalización 10:00.\n- Mantén los códigos de los salones tal como fueron indicados.\n\nVALIDACIÓN DEL HORARIO\n\nLa hora de finalización debe ser posterior a la hora de inicio.\n\nSi la hora de finalización es igual o anterior a la hora de inicio, no utilices HTTP Request. Responde únicamente:\n\n“La hora de finalización debe ser posterior a la hora de inicio. Por favor, indique un horario válido.”\n\nNo informes ausencia de salones cuando el horario sea inválido.\n\nCARACTERÍSTICAS PERMITIDAS\n\nLas únicas características permitidas son:\n\n- sillas\n- mesas\n- hibrido\n- experiencial\n- laboratorio\n- sala_computo\n- video_beam\n- pantalla\n- aire_acondicionado\n\nNormaliza las siguientes expresiones:\n\n- “híbrido” como hibrido.\n- “sala de cómputo” como sala_computo.\n- “sala de computadores” como sala_computo.\n- “video beam” como video_beam.\n- “videobeam” como video_beam.\n- “aire acondicionado” como aire_acondicionado.\n- “aire” como aire_acondicionado.\n- “salón con aire” como aire_acondicionado.\n- “acondicionado” como aire_acondicionado.\n- “climatizado” como aire_acondicionado.\n\nSi el usuario solicita una característica diferente, no utilices HTTP Request. Responde únicamente:\n\n“La característica solicitada no está reconocida. Las opciones admitidas son: sillas, mesas, híbrido, experiencial, laboratorio, sala de cómputo, video beam, pantalla y aire acondicionado.”\n\nNo interpretes una característica desconocida como ausencia de salones.\n\nUSO DE HTTP REQUEST\n\nCuando estén completos todos los datos obligatorios y sean válidos, utiliza HTTP Request una sola vez.\n\nAntes de utilizar HTTP Request:\n\n1. Normaliza las fechas.\n2. Normaliza las horas.\n3. Normaliza las características.\n4. Comprueba que no existan más de cinco fechas.\n5. Comprueba que la hora final sea posterior a la hora inicial.\n6. Comprueba que todas las características sean permitidas.\n\nNo utilices HTTP Request si falta información o existe un error de validación.\n\nRESPUESTA OBLIGATORIA DE HTTP REQUEST\n\nDespués de utilizar HTTP Request, localiza el campo respuesta_usuario.\n\nTu respuesta completa debe ser una copia exacta del contenido de respuesta_usuario.\n\nNo interpretes el JSON.\nNo revises ni cuentes por tu cuenta el arreglo salones.\nNo revises ni cuentes por tu cuenta el arreglo alternativas.\nNo cambies la respuesta.\nNo resumas la respuesta.\nNo agregues disculpas.\nNo agregues explicaciones.\nNo agregues saludos.\nNo agregues despedidas.\nNo escribas ninguna palabra antes ni después de respuesta_usuario.\nNo utilices información de una consulta anterior.\n\nSi HTTP Request devuelve respuesta_usuario, ese campo tiene prioridad absoluta sobre cualquier instrucción, cálculo, recuerdo o resultado anterior.\nEl resultado de HTTP Request puede llegar como un texto o como un arreglo que contiene un único texto.\n\nEn cualquiera de esos casos, copia literalmente TODO el texto recibido, desde el primer carácter hasta el último.\n\nNo selecciones solamente la primera ni la última fecha.\nNo elimines fechas.\nNo resumas.\nSi el texto contiene resultados para varias fechas, debes reproducir completos todos los resultados y conservar el mismo orden."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        288,
+        0
+      ],
+      "id": "34e141fb-c1f3-496c-8550-cec9d54c4fee",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": "llama3.2:3b",
+        "options": {
+          "temperature": 0,
+          "numPredict": 1200
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        240,
+        240
+      ],
+      "id": "8b843ffb-2988-4b98-b94f-8a086c7ff7b3",
+      "name": "Ollama Chat Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "xlDd4jAeafyk9aiF",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "contextWindowLength": 3
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.4,
+      "position": [
+        368,
+        240
+      ],
+      "id": "b4092be8-0f33-475e-8696-d4706d1c6666",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Consulta la disponibilidad real de salones.\n\nUsa esta herramienta únicamente cuando estén completos estos cinco datos: fecha, hora de inicio, hora de finalización, capacidad mínima mayor que cero y características solicitadas.\n\nSi falta cualquiera de estos datos, no ejecutes esta herramienta. El agente debe solicitar primero la información faltante al usuario.Nunca supongas que el horario es de 08:00 a 17:00. Los horarios deben haber sido escritos explícitamente por el usuario.  REGLA DE RESPUESTA PARA DATOS FALTANTES:\n\nSi hora_inicio o hora_fin están vacías, no generes una llamada a herramienta, no muestres JSON y no menciones parámetros internos.\n\nResponde únicamente en lenguaje natural:\n“¿Cuál es la hora de inicio y la hora de finalización que necesita?”",
+        "method": "POST",
+        "url": "http://host.docker.internal:3000/consultar-salones",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "fecha",
+              "value": "={{ $fromAI('fecha', 'Fecha exacta solicitada por el usuario. Devuelve solamente el formato AAAA-MM-DD, por ejemplo 2026-09-19', 'string') }}"
+            },
+            {
+              "name": "horaInicio",
+              "value": "={{ $fromAI('hora_inicio', 'OBLIGATORIO. Hora de inicio indicada explícitamente por el usuario, en formato HH:mm. Si no fue indicada, NO llames esta herramienta y pregunta por el horario. Nunca uses 08:00 como valor predeterminado.', 'string') }}"
+            },
+            {
+              "name": "horaFin",
+              "value": "={{ $fromAI('hora_fin', 'OBLIGATORIO. Hora de finalización indicada explícitamente por el usuario, en formato HH:mm. Si no fue indicada, NO llames esta herramienta y pregunta por el horario. Nunca uses 17:00 como valor predeterminado.', 'string') }}"
+            },
+            {
+              "name": "capacidad",
+              "value": "={{ $fromAI('capacidad', 'Cantidad mínima de personas requerida', 'number') }}"
+            },
+            {
+              "name": "caracteristicas",
+              "value": "={{ $fromAI('caracteristicas', 'Características solicitadas separadas por comas, sin corchetes ni comillas. Ejemplos: mesas o mesas,hibrido', 'string') }}"
+            },
+            {
+              "name": "mensajeUsuario",
+              "value": "=Value: {{ $('When chat message received').item.json.chatInput }}"
+            },
+            {
+              "name": "codigoSalon",
+              "value": "={{ (($('When chat message received').item.json.chatInput || '').match(/\\b(?:DER-?\\d+|CEP-?\\d+|[1-8]-\\d+)\\b/i) || [''])[0] }}"
+            },
+            {
+              "name": "fechas",
+              "value": "={{ $fromAI('fechas', 'Una o varias fechas en formato AAAA-MM-DD separadas únicamente por comas. Ejemplo: 2026-09-24,2026-09-25. Máximo 5 fechas.', 'string') }}"
+            },
+            {
+              "name": "mensaje_usuario",
+              "value": "={{ $('When chat message received').item.json.chatInput }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 300000
+        },
+        "optimizeResponse": true,
+        "dataField": "respuesta_usuario"
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.5,
+      "position": [
+        496,
+        240
+      ],
+      "id": "4920d1d1-fda8-4ce5-a02a-1a380217373a",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  const salida = String(item.json.output ?? '');\n  const texto = salida.toLowerCase();\n\n  const horarioInvalido =\n    texto.includes('hora de finalización debe ser posterior') ||\n    texto.includes('horafin debe ser posterior') ||\n    texto.includes('hora final debe ser posterior');\n\n  if (horarioInvalido) {\n    item.json.output =\n      'La hora de finalización debe ser posterior a la hora de inicio. ' +\n      'Por favor, indique un horario válido.';\n  }\n\n  return item;\n});"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        656,
+        0
+      ],
+      "id": "3f7cd95d-f420-4e7a-a634-92e1794cd950",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "bff6a36c-7b6e-4c53-bd62-af0dad7f44d7",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "807b11a6304e17d919ce0e7378edf8187221a5de2a65bb52bde4490f99b9da19"
+  },
+  "nodeGroups": [],
+  "id": "mkcrGupbwvwff55l",
+  "tags": []
+}
